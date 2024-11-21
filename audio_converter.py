@@ -12,7 +12,7 @@ nltk.download('punkt')
 nltk.download('averaged_perceptron_tagger')
 nltk.download('stopwords')
 recognizer = sr.Recognizer()
-@app.route('/process-audio', methods=['POST'])
+@app.route('/audio_converter_api', methods=['POST'])
 def process_audio():
     if 'file' not in request.files:
         return jsonify({'error': 'No audio file provided'}), 400
