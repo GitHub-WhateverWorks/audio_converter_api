@@ -1,52 +1,50 @@
-# from openai import OpenAI
-# import elevenlabs
+import os
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import speech_recognition as sr
-import time
-import nltk
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.tag import pos_tag
-# nltk.download('punkt')
-# nltk.download('averaged_perceptron_tagger')
-# nltk.download('stopwords')
-
+app = Flask(__name__)
+CORS(app)  
+nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('stopwords')
 recognizer = sr.Recognizer()
-transcript_result = None
+@app.route('/process-audio', methods=['POST'])
+def process_audio():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No audio file provided'}), 400
 
-def handle_conversation():
-    while True:
-        start_time = time.time()
-        words = ""
-        keywords = []
-        try:
-            # Capture audio from the microphone
-            with sr.Microphone() as source:
-                print("Say something...")
-                audio = recognizer.listen(source)
-                sentence = recognizer.recognize_google(audio)
-                # sentence = "Machine learning is transforming the technology landscape."
-                words = word_tokenize(sentence.lower())
-                            # Filter out stop words
-                stop_words = set(stopwords.words('english'))
-                filtered_words = [word for word in words if word.isalnum() and word not in stop_words]
-                
-                # Tag parts of speech
-                pos_tags = pos_tag(filtered_words)
-                keywords = [word for word, tag in pos_tags if tag in ('NN', 'NNS', 'NNP', 'NNPS', 'JJ', 'JJR', 'JJS')]
-                print(transcript_result)
-                print("Keywords:", keywords)
+    audio_file = request.files['file']
+    
+    # Save the audio file
+    file_path = os.path.join('uploads', audio_file.filename)
+    audio_file.save(file_path)
+    
+    try:
+        with sr.AudioFile(file_path) as source:
+            audio = recognizer.record(source)
+            sentence = recognizer.recognize_google(audio)
+        words = word_tokenize(sentence.lower())
+        stop_words = set(stopwords.words('english'))
+        filtered_words = [word for word in words if word.isalnum() and word not in stop_words]
+        pos_tags = pos_tag(filtered_words)
+        keywords = [word for word, tag in pos_tags if tag in ('NN', 'NNS', 'NNP', 'NNPS', 'JJ', 'JJR', 'JJS')]
+        return jsonify({'keywords': keywords})
+    
+    except sr.UnknownValueError:
+        return jsonify({'error': 'Speech recognition could not understand audio'}), 400
+    except sr.RequestError as e:
+        return jsonify({'error': f'Request failed: {e}'}), 500
+    finally:
+        os.remove(file_path) 
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'API is running'}), 200
 
-        except sr.UnknownValueError:
-            print("Google Speech Recognition could not understand audio")
-            continue
-        except sr.RequestError as e:
-            print("Could not request results from Google Speech Recognition service; {0}".format(e))
-            continue
-
-        end_time = time.time()
-        print(f"Recognition Time: {end_time - start_time}")
-        start_time = time.time()
-
-
-handle_conversation()
+if __name__ == '__main__':
+    if not os.path.exists('uploads'):
+        os.makedirs('uploads')
+    app.run(host='0.0.0.0', port=5000)
