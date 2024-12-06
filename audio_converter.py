@@ -6,6 +6,7 @@ import jieba
 import jieba.posseg as pseg
 import stopwordsiso as stopwords
 from pydub import AudioSegment  # Import pydub for audio conversion
+from googletrans import Translator
 
 app = Flask(__name__)
 CORS(app)
@@ -42,7 +43,9 @@ def process_audio():
         words = pseg.cut(sentence)
         filtered_words = [word for word, tag in words if word not in stop_words and tag in desired_tags]
 
-        return jsonify({'keywords': filtered_words})
+        translated_keywords = [translator.translate(word, src='zh-CN', dest='en').text for word in filtered_words]
+
+        return jsonify({'keywords': translated_keywords})
 
     except sr.UnknownValueError:
         return jsonify({'error': 'Speech recognition could not understand audio'}), 400
