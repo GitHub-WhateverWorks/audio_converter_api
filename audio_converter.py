@@ -17,6 +17,8 @@ recognizer = sr.Recognizer()
 stop_words = stopwords.stopwords("zh")
 desired_tags = {'n', 'nr', 'ns', 'nt', 'nz', 'v', 'vn', 'a', 'ad', 'an'}
 
+translator = Translator()
+
 @app.route('/audio_converter_api', methods=['POST'])
 def process_audio():
     if 'file' not in request.files:
@@ -40,12 +42,10 @@ def process_audio():
             sentence = recognizer.recognize_google(audio_data, language='zh-CN')
 
         # Tokenize and POS-tag words
-        words = pseg.cut(sentence)
-        filtered_words = [word for word, tag in words if word not in stop_words and tag in desired_tags]
+        translated_sentence = translator.translate(sentence, src='zh-CN', dest='en').text
+        filtered_words = [word for word in translated_sentence.split() if word.lower() not in stop_words]
 
-        translated_keywords = [Translator.translate(word, src='zh-CN', dest='en').text for word in filtered_words]
-
-        return jsonify({'keywords': translated_keywords})
+        return jsonify({'keywords': filtered_words})
 
     except sr.UnknownValueError:
         return jsonify({'error': 'Speech recognition could not understand audio'}), 400
