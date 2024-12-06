@@ -25,8 +25,10 @@ def process_audio():
         return jsonify({'error': 'No audio file provided'}), 400
 
     audio_file = request.files['file']
+    print(f"Received file: {audio_file.filename}")
     original_file_path = os.path.join('uploads', audio_file.filename)
     wav_file_path = os.path.splitext(original_file_path)[0] + '.wav'
+    print(f"Saving to: {original_file_path}")
 
     # Save the original audio file
     audio_file.save(original_file_path)
@@ -41,6 +43,7 @@ def process_audio():
             audio_data = recognizer.record(source)
             try:
                 # Attempt to recognize the speech in the audio
+                print(f"start Recognizing")
                 sentence = recognizer.recognize_google(audio_data, language='zh-CN')
                 print(f"Recognized sentence: {sentence}")  # Debugging: Print recognized sentence
             except sr.UnknownValueError:
