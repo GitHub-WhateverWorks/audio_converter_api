@@ -43,7 +43,7 @@ def process_audio():
         words = pseg.cut(sentence)
         filtered_words = [word for word, tag in words if word not in stop_words and tag in desired_tags]
 
-        translated_keywords = [translator.translate(word, src='zh-CN', dest='en').text for word in filtered_words]
+        translated_keywords = [Translator.translate(word, src='zh-CN', dest='en').text for word in filtered_words]
 
         return jsonify({'keywords': translated_keywords})
 
