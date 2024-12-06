@@ -39,21 +39,50 @@ def process_audio():
         # Perform speech recognition on the WAV file
         with sr.AudioFile(wav_file_path) as source:
             audio_data = recognizer.record(source)
-            sentence = recognizer.recognize_google(audio_data, language='zh-CN')
+            try:
+                # Attempt to recognize the speech in the audio
+                sentence = recognizer.recognize_google(audio_data, language='zh-CN')
+                print(f"Recognized sentence: {sentence}")  # Debugging: Print recognized sentence
+            except sr.UnknownValueError:
+                return jsonify({'error': 'Speech recognition could not understand audio'}), 400
+            except sr.RequestError as e:
+                return jsonify({'error': f'Request failed: {e}'}), 500
 
-        # Tokenize and POS-tag words
+            # Check if the sentence is empty or None
+            if not sentence:
+                return jsonify({'error': 'No speech detected in the audio'}), 400
+
+        # Tokenize and POS-tag words (Chinese sentence)
         words = pseg.cut(sentence)
         filtered_words = [word for word, tag in words if word not in stop_words and tag in desired_tags]
 
+        print(f"Filtered words: {filtered_words}")  # Debugging: Print filtered words
+
+        # Check if there are any keywords to translate
+        if not filtered_words:
+            return jsonify({'error': 'No meaningful keywords found'}), 400
+
         # Translate the filtered Chinese keywords into English
-        translated_keywords = [translator.translate(word, src='zh-CN', dest='en').text for word in filtered_words]
+        translated_keywords = []
+        for word in filtered_words:
+            try:
+                translation = translator.translate(word, src='zh-CN', dest='en').text
+                print(f"Translated '{word}' to '{translation}'")  # Debugging: Print each translation
+                if translation:
+                    translated_keywords.append(translation)
+            except Exception as e:
+                print(f"Error during translation of word '{word}': {e}")  # Debugging: Log translation error
+                continue  # Skip the word if translation fails
+
+        # Check if the translation is successful and return the keywords
+        if not translated_keywords:
+            return jsonify({'error': 'No valid translated keywords found'}), 400
 
         return jsonify({'keywords': translated_keywords})
 
-    except sr.UnknownValueError:
-        return jsonify({'error': 'Speech recognition could not understand audio'}), 400
-    except sr.RequestError as e:
-        return jsonify({'error': f'Request failed: {e}'}), 500
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")  # Debugging: Log unexpected errors
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
     finally:
         # Clean up files
         if os.path.exists(original_file_path):
