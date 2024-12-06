@@ -81,7 +81,7 @@ def process_audio():
         #if not translated_keywords:
         #    return jsonify({'error': 'No valid translated keywords found'}), 400
 
-        return jsonify({'keywords': translated_keywords})
+        return jsonify({'keywords': filtered_words})
 
     except Exception as e:
         print(f"Unexpected error: {str(e)}")  # Debugging: Log unexpected errors
