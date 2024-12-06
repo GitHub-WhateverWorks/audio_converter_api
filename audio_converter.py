@@ -39,21 +39,31 @@ def process_audio():
         # Perform speech recognition on the WAV file
         with sr.AudioFile(wav_file_path) as source:
             audio_data = recognizer.record(source)
-            sentence = recognizer.recognize_google(audio_data, language='zh-CN')
+            try:
+                sentence = recognizer.recognize_google(audio_data, language='zh-CN')
+            except sr.UnknownValueError:
+                return jsonify({'error': 'Speech recognition could not understand audio'}), 400
+            except sr.RequestError as e:
+                return jsonify({'error': f'Request failed: {e}'}), 500
+
+            if not sentence:
+                return jsonify({'error': 'No speech detected in the audio'}), 400
 
         # Tokenize and POS-tag words
         words = pseg.cut(sentence)
         filtered_words = [word for word, tag in words if word not in stop_words and tag in desired_tags]
+
+        # Check if there are any keywords to translate
+        if not filtered_words:
+            return jsonify({'error': 'No meaningful keywords found'}), 400
 
         # Translate the filtered Chinese keywords into English
         translated_keywords = [translator.translate(word, src='zh-CN', dest='en').text for word in filtered_words]
 
         return jsonify({'keywords': translated_keywords})
 
-    except sr.UnknownValueError:
-        return jsonify({'error': 'Speech recognition could not understand audio'}), 400
-    except sr.RequestError as e:
-        return jsonify({'error': f'Request failed: {e}'}), 500
+    except Exception as e:
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
     finally:
         # Clean up files
         if os.path.exists(original_file_path):
