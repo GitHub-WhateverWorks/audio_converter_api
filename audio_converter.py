@@ -78,8 +78,8 @@ def process_audio():
                 continue  # Skip the word if translation fails
 
         # Check if the translation is successful and return the keywords
-        if not translated_keywords:
-            return jsonify({'error': 'No valid translated keywords found'}), 400
+        #if not translated_keywords:
+        #    return jsonify({'error': 'No valid translated keywords found'}), 400
 
         return jsonify({'keywords': translated_keywords})
 
